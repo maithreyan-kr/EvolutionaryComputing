@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Genetic Algorithm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 200px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>TSP Genetic Algorithm</h1>
+    
+    <label for="popSize">Population Size:</label>
+    <input type="number" id="popSize" placeholder="Enter population size">
+
+    <label for="pCross">Crossover Probability:</label>
+    <input type="number" id="pCross" placeholder="Enter crossover probability (0-1)">
+
+    <label for="pMut">Mutation Probability:</label>
+    <input type="number" id="pMut" placeholder="Enter mutation probability (0-1)">
+
+    <label for="textinput">City Data:</label>
+    <textarea id="textinput" rows="10" placeholder="Enter city data (format: node x-coordinate y-coordinate)"></textarea>
+
+    <button onclick="runAlgorithm()">Run Genetic Algorithm</button>
+
+    <div id="result">
+        <h2>Results:</h2>
+        <p>Best Fitness: <span id="bestFitness"></span></p>
+        <p>Average Fitness: <span id="averageFitness"></span></p>
+        <p>Optimal Solution: <span id="optimalSolution"></span></p>
+    </div>
+
+    <script>
+        var google = {
+            visualization: {
+                DataTable: function() {},
+                LineChart: function() {},
+            },
+        };
+        var variables = {
+            data: null,
+            options: null,
+            chart: null,
+            map: null,
+            mapData: new google.visualization.DataTable(),
+        };
+        
+    function runAlgorithm() {
+        // Retrieve parameters and city data
+        var popSize = parseInt(document.getElementById('popSize').value) || 100;
+        var pCross = parseFloat(document.getElementById('pCross').value) || 0.8;
+        var pMut = parseFloat(document.getElementById('pMut').value) || 0.02;
+
+        var cityData = document.getElementById('textinput').value;
+
+        // Parse city data (assuming each line represents a city with format: node x-coordinate y-coordinate)
+        var cities = cityData.split('\n').map(line => {
+            var [node, x, y] = line.split(' ').map(parseFloat);
+            return { node, x, y };
+        });
+
+        function geneticAlgorithmFunction(popSize, pCross, pMut, cities) {
+            var populationSize = parseInt(popSize, 10) || 1000;
+            var crossoverProbability = parseFloat(pCross) || 1.0;
+            var mutationProbability = parseFloat(pMut) || 0.01;
+        
+            function initialize() {
+                citiesData = cities.slice(); // Copy cities data
+        
+                variables.data = new google.visualization.DataTable();
+                variables.data.addColumn('number', 'X');
+                variables.data.addColumn('number', 'Current Best');
+                variables.data.addColumn('number', 'Current Average');
+        
+                variables.options = {
+                    hAxis: {
+                        title: 'Generation',
+                        format: '0',
+                        viewWindow: {
+                            min: 0
+                        }
+                    },
+                    vAxis: {
+                        title: 'Total Time',
+                        format: '0'
+                    }
+                };
+        
+                variables.chart = new google.visualization.LineChart(document.getElementById('linechart_div'));
+        
+                variables.map = new google.visualization.LineChart(document.getElementById('map_div'));
+        
+                var bestIndiv = new Individual();
+        
+                bestIndiv.createBestTour();
+                bestIndiv.calculateTourLength();
+        
+                var pop = new Population(populationSize, citiesData, crossoverProbability, mutationProbability);
+        
+                pop.generation();
+
+                var bestIndiv = new Individual();
+                bestIndiv.createBestTour();
+                bestIndiv.calculateTourLength();
+
+                var pop = new Population(populationSize, citiesData, crossoverProbability, mutationProbability);
+                pop.generation();
+
+                // Calculate and display the best fitness after the algorithm runs
+                var bestFitness = calculateBestFitness(pop);
+                console.log('Best Fitness:', bestFitness);
+
+            }
+
+            function calculateBestFitness(pop) {
+                // Initialize with a high value to ensure the first tour length is smaller
+                var bestFitness = Infinity;
+            
+                // Iterate through the population to find the individual with the best fitness
+                for (var i = 0; i < pop.length; i++) {
+                    var currentFitness = pop[i].tsp.length;
+            
+                    // Update bestFitness if the current individual has a smaller tour length
+                    if (currentFitness < bestFitness) {
+                        bestFitness = currentFitness;
+                    }
+                }
+            
+                // Return the calculated best fitness
+                return bestFitness;
+            }
+
+        class Individual {
+            constructor(indiv) {
+                this.tsp = {
+                    tour: [],
+                    length: 0,
+                };
+        
+                this.cities = [];
+        
+                if (indiv !== undefined) {
+                    for (let a = 0; a < indiv.tsp.tour.length; a++) {
+                        const tempCity = {
+                            node: indiv.tsp.tour[a].node,
+                            x: indiv.tsp.tour[a].x,
+                            y: indiv.tsp.tour[a].y,
+                        };
+        
+                        this.tsp.tour.push(tempCity);
+                    }
+                }
+            }
+        
+            createBestTour() {
+                // Implement your logic for creating the best tour (e.g., reading it from a file)
+                // ...
+        
+                // For demonstration, let's assume a simple tour
+                const bestTour = '1,2,3,4,5';
+                const bestArray = bestTour.split(',');
+        
+                for (let i = 0; i < bestArray.length; i++) {
+                    const cityIndex = parseInt(bestArray[i]) - 1;
+                    const currentCity = {
+                        node: this.cities[cityIndex].node,
+                        x: this.cities[cityIndex].x,
+                        y: this.cities[cityIndex].y,
+                    };
+        
+                    this.tsp.tour.push(currentCity);
+                }
+            }
+        
+            calculateTourLength() {
+                let tourLength = 0.0;
+        
+                for (let i = 0; i < this.tsp.tour.length - 1; i++) {
+                    const currentLegX = this.tsp.tour[i + 1].x - this.tsp.tour[i].x;
+                    const currentLegY = this.tsp.tour[i + 1].y - this.tsp.tour[i].y;
+                    const currentLeg = Math.floor(Math.sqrt((currentLegX * currentLegX) + (currentLegY * currentLegY)));
+        
+                    tourLength += currentLeg;
+                }
+        
+                // Add the length of the last leg (back to the starting city)
+                const lastLegX = this.tsp.tour[0].x - this.tsp.tour[this.tsp.tour.length - 1].x;
+                const lastLegY = this.tsp.tour[0].y - this.tsp.tour[this.tsp.tour.length - 1].y;
+                const lastLeg = Math.floor(Math.sqrt((lastLegX * lastLegX) + (lastLegY * lastLegY)));
+        
+                tourLength += lastLeg;
+        
+                this.tsp.length = tourLength;
+            }
+        
+            inversionMutation() {
+                // Perform inversion mutation on the tour
+                const start = Math.floor(Math.random() * this.tsp.tour.length);
+                const end = Math.floor(Math.random() * (this.tsp.tour.length - start)) + start;
+        
+                for (let i = 0; i < Math.floor((end - start + 1) / 2); i++) {
+                    const temp = this.tsp.tour[start + i];
+                    this.tsp.tour[start + i] = this.tsp.tour[end - i];
+                    this.tsp.tour[end - i] = temp;
+                }
+            }
+        
+            rgbinnmMutation() {
+                // Perform RGBINNM mutation on the tour
+                const selectedCityIndex = Math.floor(Math.random() * this.tsp.tour.length);
+                const selectedCity = this.tsp.tour[selectedCityIndex];
+        
+                // Find the position that minimizes the tour length if the selected city is moved there
+                let minDeltaLength = Infinity;
+                let minIndex = -1;
+        
+                for (let i = 0; i < this.tsp.tour.length; i++) {
+                    if (i !== selectedCityIndex) {
+                        // Temporarily move the selected city to the new position
+                        this.tsp.tour.splice(selectedCityIndex, 1);
+                        this.tsp.tour.splice(i, 0, selectedCity);
+        
+                        // Calculate the new tour length
+                        const newLength = this.calculateTourLength();
+        
+                        // Check if the new position improves the tour length
+                        const deltaLength = newLength - this.tsp.length;
+                        if (deltaLength < minDeltaLength) {
+                            minDeltaLength = deltaLength;
+                            minIndex = i;
+                        }
+        
+                        // Move the selected city back to its original position
+                        this.tsp.tour.splice(i, 1);
+                        this.tsp.tour.splice(selectedCityIndex, 0, selectedCity);
+                    }
+                }
+        
+                // Move the selected city to the best position
+                this.tsp.tour.splice(selectedCityIndex, 1);
+                this.tsp.tour.splice(minIndex, 0, selectedCity);
+            }
+
+            createBestTour(input) {
+                const cityLines = input.split('\n');
+                for (let i = 0; i < cityLines.length; i++) {
+                    const cityInfo = cityLines[i].trim().split(' ');
+                    if (cityInfo.length === 3) {
+                        const city = {
+                            node: parseInt(cityInfo[0]),
+                            x: parseFloat(cityInfo[1]),
+                            y: parseFloat(cityInfo[2]),
+                        };
+                        this.tsp.tour.push(city);
+                    }
+                }
+            }
+                
+        }
+
+        class Population {
+            constructor(size, cities, pCross, pMut) {
+                this.pop = [];
+        
+                for (var c = 0; c < size; c++) {
+                    var indiv = new Individual(cities);
+                    indiv.createTour();
+                    indiv.calculateTourLength();
+                    this.pop.push(indiv);
+                }
+    
+                this.pop.sort((a, b) => a.tsp.length - b.tsp.length);
+    
+                this.currentGen = 0;
+                this.currentBest = 0;
+                this.currentAverage = 1;
+    
+                this.bestIndiv = new Individual(this.pop[0]);
+                this.bestIndiv.calculateTourLength();
+    
+                // Set crossover and mutation probabilities
+                this.pCross = pCross;
+                this.pMut = pMut;
+            }
+
+            generation() {
+                for (var c = 0; c < populationSize / 2; c++) {
+                    this.pmx();
+                }
+    
+                for (var d = 1; d < populationSize; d++) {
+                    this.pop[d].mutate();
+                }
+    
+                this.pop.sort((a, b) => a.tsp.length - b.tsp.length);
+                this.pop.splice(populationSize, populationSize);
+    
+                if (this.pop[0].tsp.length < this.bestIndiv.tsp.length) {
+                    this.bestIndiv.copy(this.pop[0]);
+                    this.bestIndiv.calculateTourLength();
+                }
+    
+                this.currentGen++;
+    
+                this.updateChart();
+    
+                var fnGenerator = function (population) {
+                    var wrapperFn = function () {
+                        population.generation();
+                    };
+                    return wrapperFn;
+                };
+    
+                var fnToCall = fnGenerator(this);
+    
+                if (difference == Math.floor(this.currentAverage) - Math.floor(this.currentBest)) {
+                    timesDifference++;
+                } else {
+                    timesDifference = 0;
+                    difference = Math.floor(this.currentAverage) - Math.floor(this.currentBest);
+                }
+    
+                if (timesDifference < 10) {
+                    setTimeout(fnToCall, 10);
+                } else {
+                    document.getElementById('textinput').disabled = false;
+                    document.getElementById('parseData').disabled = false;
+                    document.getElementById('clearData').disabled = false;
+    
+                    console.log(runs);
+    
+                    // Calculate and display the best fitness after the algorithm runs
+                    var bestFitness = calculateBestFitness(this);
+                    console.log('Best Fitness:', bestFitness);
+                }
+            }
+            updateChart() {
+                // Implement your chart update logic here
+                // For example, update a line chart with the best and average tour lengths over generations
+                const bestTourLength = this.pop[0].tsp.length;
+                const averageTourLength = this.calculateAverageTourLength();
+        
+                variables.data.addRow([this.currentGen, bestTourLength, averageTourLength]);
+                variables.chart.draw(variables.data, variables.options);
+        
+                // Update other UI elements
+                document.getElementById('average').innerHTML = "Average: " + Math.floor(averageTourLength).toString();
+                document.getElementById('best').innerHTML = "Best: " + Math.floor(bestTourLength).toString();
+                document.getElementById('diff').innerHTML = "Difference: " + Math.floor(averageTourLength - bestTourLength).toString();
+        
+                this.updateMapVisualization();
+            }
+
+            updateMapVisualization() {
+                // Clear existing data
+                variables.mapData.removeRows(0, variables.mapData.getNumberOfRows());
+        
+                // Add the best tour coordinates to the map data table
+                for (let i = 0; i < this.bestIndiv.tsp.tour.length; i++) {
+                    variables.mapData.addRow([
+                        parseFloat(this.bestIndiv.tsp.tour[i].x),
+                        parseFloat(this.bestIndiv.tsp.tour[i].y)
+                    ]);
+                }
+        
+                // Draw the updated map visualization
+                variables.map.draw(variables.mapData);
+            }
+        
+            calculateAverageTourLength() {
+                // Calculate and return the average tour length of the current population
+                let totalTourLength = 0;
+                for (let i = 0; i < this.pop.length; i++) {
+                    totalTourLength += this.pop[i].tsp.length;
+                }
+        
+                return totalTourLength / populationSize;
+            }
+        }
+    }
+
+        // Call your Genetic Algorithm function with parameters and city data
+        var gaResult = geneticAlgorithmFunction(popSize, pCross, pMut, cities);
+
+        // Display results on the webpage
+        document.getElementById('bestFitness').innerText = gaResult.bestFitness.toFixed(2);
+        document.getElementById('averageFitness').innerText = gaResult.averageFitness.toFixed(2);
+        document.getElementById('optimalSolution').innerText = gaResult.optimalSolution.join(' -> ');
+        console.log('Value of bestFitness:', someObject.bestFitness);
+    }
+    </script>
+</body>
+</html>
